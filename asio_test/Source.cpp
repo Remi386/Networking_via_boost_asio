@@ -14,41 +14,59 @@ int main()
 	asio::io_context context;
 
 	asio::ip::tcp::socket sock(context);
-
 	system::error_code err;
-
 	asio::ip::tcp::resolver resolver(context);
-	std::string url = "www.yandex.ru";
-	asio::ip::tcp::resolver::query quer(url, "80");
-
-	auto iter = resolver.resolve(quer, err);
-
-	sock.connect(*iter);
-
-	std::string request =
-		"GET /index.html HTTP/1.1\r\n"
-		"Host: " + url + "\r\n"
-		"Connection: close\r\n\r\n";
-
-	sock.write_some(boost::asio::buffer(request.data(), request.size()));
 	
-	std::this_thread::sleep_for(200ms); //waiting for response
+	std::string url;      // = "www.yandex.ru"; // = "example.com"
+	do {
 
-	size_t bytes = sock.available();
-	
-	if (bytes > 0) {
-		std::vector<uint8_t> buff(bytes);
-		sock.read_some(boost::asio::buffer(buff.data(), buff.size()));
+		std::cout << "Enter the domain you want to connect (q for quit)" << std::endl;
+		std::cin >> url;
+		if (url[0] == 'q')
+			break;
 
-		for (int i = 0; i < buff.size(); ++i) {
-			std::cout.put(buff[i]);
+		asio::ip::tcp::resolver::query quer(url, "80"); //port 80 (http)
+
+		auto iter = resolver.resolve(quer, err);
+
+		if (err) {
+			std::cout << err.what() << std::endl;
+			continue;
 		}
-		std::cout << std::endl;
 
-	}
+		sock.connect(*iter, err);
 
+		if (err) {
+			std::cout << err.what() << std::endl;
+			continue;
+		}
 
-	std::cout << "Request done!" << std::endl;
+		std::string request =
+			"GET /index.html HTTP/1.1\r\n"
+			"Host: " + url + "\r\n"
+			"Connection: close\r\n\r\n";
+
+		sock.write_some(boost::asio::buffer(request.data(), request.size()));
+
+		std::this_thread::sleep_for(200ms); //waiting for response
+
+		size_t bytes = sock.available();
+
+		if (bytes > 0) {
+			std::vector<uint8_t> buff(bytes);
+			sock.read_some(boost::asio::buffer(buff.data(), buff.size()));
+
+			for (int i = 0; i < buff.size(); ++i) {
+				std::cout.put(buff[i]);
+			}
+			std::cout << std::endl;
+
+		}
+
+		std::cout << "\nRequest done!" << std::endl;
+		sock.close();
+	} while (true);
+
 
 	return 0;
 }
