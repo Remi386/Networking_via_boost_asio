@@ -54,7 +54,7 @@ void ReadData(asio::ip::tcp::socket& sock) {
 				std::cout << err.what() << std::endl;
 			}
 			else {
-				switch (static_cast<MessageType>(input_buffer[0]))
+				switch (static_cast<MessageType>(input_buffer[0] - '0')) //converting char to int
 				{
 				case MessageType::Ping:
 				{
@@ -65,17 +65,17 @@ void ReadData(asio::ip::tcp::socket& sock) {
 
 					std::istringstream ss(str);
 					uint64_t millis;
-
 					ss >> millis;
-					std::cout << "Ping: " << std::chrono::duration<double>(time - millis).count() << std::endl;
-					std::string s = "Ping took " + std::to_string(time - millis) + "microseconds\n";
+					auto diff = std::to_string(double(time - millis) / std::chrono::steady_clock::period::den);
+					std::cout << "Ping: " + diff << " seconds" << std::endl;
+					std::string s = "Ping took " + diff + " seconds\n";
 					WriteData(sock, std::move(s));
 				}
 					break;
 
 				case MessageType::Text:
 					std::cout << "Message from " << sock.remote_endpoint() << std::endl;
-					for (int i = 0; i < length; ++i) {
+					for (int i = 1; i < length; ++i) {
 						std::cout.put(input_buffer[i]);
 					}
 					std::cout << std::endl;
@@ -84,7 +84,7 @@ void ReadData(asio::ip::tcp::socket& sock) {
 					break; 
 				case MessageType::Hello:
 					std::cout << "Hello from " << sock.remote_endpoint() << std::endl;
-					WriteData(sock, "Hello\n");
+					WriteData(sock, "Hello from server\n");
 					break;
 
 				case MessageType::Exit:
@@ -93,7 +93,10 @@ void ReadData(asio::ip::tcp::socket& sock) {
 					break; 
 
 				default:
-					std::cout << "Error deducing message type" << std::endl;
+					std::cout << "Error deducing message type\nMessage:" << std::endl;
+					for (int i = 0; i < length; ++i) {
+						std::cout.put(input_buffer[i]);
+					}
 					break;
 				}
 			}
