@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# VS folder
+.vs/*
+
+# notepad++ files
+*.bak
+
+!.gitignore
