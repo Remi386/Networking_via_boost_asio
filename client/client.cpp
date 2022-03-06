@@ -103,14 +103,12 @@ int main()
 		default:
 			break;
 		}
-		std::cout << message << std::endl;
+		
 		std::copy(message.begin(), message.end(), output_buffer.begin());
 		WriteData(sock, message.size());
 		context.run();
 		context.restart();
 	} while (true);
-
-
 
 	return 0;
 }

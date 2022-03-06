@@ -38,8 +38,8 @@ public:
 	explicit Connection(asio::ip::tcp::socket&& _sock)
 		: sock(std::move(_sock))
 	{
-		write_buffer.reserve(buffer_size);
-		read_buffer.reserve(buffer_size);
+		write_buffer.resize(buffer_size);
+		read_buffer.resize(buffer_size);
 	}
 
 	static conn_ptr CreateConnection(asio::ip::tcp::socket&& _sock) {
@@ -48,7 +48,8 @@ public:
 	}
 
 	void WriteData() {
-		sock.async_write_some(asio::buffer(write_buffer.data(), write_buffer.size()),
+		sock.async_write_some(asio::buffer(write_buffer.data(),
+			std::find(write_buffer.begin(), write_buffer.end(), '\n') - write_buffer.begin() + 1),
 			[&](system::error_code err, size_t length)
 			{
 				if (err) {
@@ -76,8 +77,9 @@ public:
 					}
 					bufferstream istr(&read_buffer[0], read_buffer.size());
 					bufferstream ostr(&write_buffer[0], write_buffer.size());
-					
-					switch (static_cast<MessageType>(istr.peek() - '0')) //converting char to int
+					uint8_t Mtype;
+					istr >> Mtype;
+					switch (static_cast<MessageType>(Mtype - '0')) //converting char to integer
 					{
 					case MessageType::Ping:
 					{
@@ -100,6 +102,7 @@ public:
 						std::string line;
 						std::getline(istr, line);
 						std::cout.write(line.data(), line.size());
+						std::cout << std::endl;
 
 						ostr << "Message recived\n";
 						WriteData();
@@ -177,14 +180,16 @@ int main()
 		asio::ip::tcp::endpoint(asio::ip::address_v4(), port));
 
 	boost::thread_group threads;
-
+	
 	WaitConnection(acceptor);
 
-	/*for (int i = 0; i < threads_count; ++i) {
+	for (int i = 0; i < threads_count; ++i) {
 		threads.create_thread([&]() { context.run(); });
-	}*/
-	context.run(); //main thread also should handle events
-	threads.join_all();
+	}
+	context.run(); //main thread can do his stuff, but here we 
+				   // want main thread to handle events, too
 
+	threads.join_all();
+	
 	return 0;
 }
